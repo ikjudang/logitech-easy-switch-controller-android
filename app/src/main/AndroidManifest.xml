@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        본딩된 기기 목록(bondedDevices)만 읽고 GATT 연결만 하므로 CONNECT 권한이면 충분하다.
+        BLE 스캔은 이 앱의 경로에서 필요 없으므로 SCAN 권한을 요청하지 않는다(단순화).
+        Android 12+(minSdk 31)에서 CONNECT는 런타임 권한이다.
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!--
+        따라가기는 접근성 서비스가 아니라 connectedDevice 포그라운드 서비스(FollowService)가 맡는다.
+        접근성을 선언하면 스토어 밖 첫 설치가 Play 프로텍트에 막히기 때문이다(0.3.1).
+        플로팅 버튼의 알림 소환을 켠 경우에만 POST_NOTIFICATIONS를 요청한다.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 재부팅 뒤 앱을 열지 않아도 따라가기를 다시 켠다(FollowStartReceiver). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 다른 앱 위의 전환 안내(SystemNoticeOverlay). 사용자가 설정에서 허용해야 하며, 없으면 앱 화면 안에만 뜬다. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.EasySwitchController">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.EasySwitchController">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".floating.FloatingSummonActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.EasySwitch.FloatingSummon" />
+
+        <service
+            android:name=".floating.FloatingTileService"
+            android:exported="true"
+            android:label="@string/floating_title"
+            android:icon="@drawable/ic_floating_tile"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data android:name="android.service.quicksettings.ACTIVE_TILE" android:value="true" />
+        </service>
+
+        <!-- 앱별 언어 선택(31~32 포함)을 AppCompat이 부팅 시 복원하도록 저장 활성화 -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
+        <service
+            android:name=".service.FollowService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <!-- 보호된 시스템 브로드캐스트만 받는다. 다른 앱이 명시적으로 보내도 서비스 시작 외에는 하는 일이 없다. -->
+        <receiver
+            android:name=".service.FollowStartReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

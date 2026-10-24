@@ -1,0 +1,15 @@
+<resources>
+    <!--
+        Compose 앱이므로 XML 테마는 앱 시작 시 윈도우 배경/상태바 초기값 역할만 한다.
+        실제 색·타이포는 Compose theme(ui/theme)가 관리한다.
+        AppCompat 계열 부모가 필요하다 — MainActivity가 AppCompatActivity(언어 선택용)라서.
+        앱은 항상 다크(핸드오프 확정)이므로 DayNight가 아닌 다크 고정 부모를 쓴다.
+    -->
+    <style name="Theme.EasySwitchController" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/app_background</item>
+    </style>
+    <style name="Theme.EasySwitch.FloatingSummon" parent="android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+</resources>

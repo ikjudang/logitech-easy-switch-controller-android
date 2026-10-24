@@ -1,0 +1,26 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <application android:label="EasySwitch Input Probe" tools:replace="android:label">
+        <activity android:name=".MainActivity" android:enabled="false" />
+        <activity android:name=".floating.FloatingSummonActivity" tools:node="remove" />
+        <service android:name=".floating.FloatingTileService" tools:node="remove" />
+        <service android:name=".service.FollowService" tools:node="remove" />
+        <receiver android:name=".service.FollowStartReceiver" tools:node="remove" />
+        <activity android:name=".inputprobe.InputProbeActivity" android:exported="true" android:label="EasySwitch Input Probe">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <service android:name=".inputprobe.InputProbeService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Temporary user-initiated mouse input verification; no Bluetooth control" />
+        </service>
+        <service android:name=".inputprobe.ProbePixelCaptureService" android:exported="false" android:foregroundServiceType="mediaProjection" />
+    </application>
+</manifest>

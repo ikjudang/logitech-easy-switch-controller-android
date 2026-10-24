@@ -1,0 +1,160 @@
+<resources>
+    <string name="app_name">Easy Switch</string>
+
+    <!-- Ongoing notification of the following service (foreground service) -->
+    <string name="follow_notification_channel">Mouse following</string>
+    <string name="follow_notification_channel_desc">Shown while mouse following is running. Following keeps working if you hide it.</string>
+    <string name="follow_notification_title">Mouse following on</string>
+    <string name="follow_notification_text">When you change the channel on the keyboard, the app switches the mouse to the same channel.</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_devices">Devices</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Home -->
+    <string name="home_section_channels">Switch to channel</string>
+    <string name="home_section_connected">Connected devices (%1$d)</string>
+    <string name="home_link_select_devices">Devices</string>
+    <string name="channel_label">Channel %1$d</string>
+    <string name="channel_active">Last switched channel</string>
+    <string name="channel_connected_here">Connected to this device</string>
+    <string name="channel_tap">Tap to switch</string>
+    <string name="status_footer_on">Mouse following on</string>
+    <string name="status_footer_off">Mouse following off</string>
+    <string name="chip_detect">Watching</string>
+    <string name="chip_ready">Ready</string>
+
+    <!-- Channel rename (secondary click or long press) -->
+    <string name="rename_title">Rename channel</string>
+    <string name="rename_confirm">OK</string>
+    <string name="rename_hint">e.g. Work PC</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Device rows -->
+    <string name="device_mouse_ready">Mouse: Ready to switch</string>
+    <string name="device_kbd_following">Keyboard: Watching for switches</string>
+    <string name="device_not_connected">Not connected</string>
+    <string name="device_role_mouse">Mouse</string>
+    <string name="device_role_keyboard">Keyboard</string>
+
+    <!-- Device select -->
+    <string name="device_select_title">Devices</string>
+    <string name="device_select_subtitle">Select the devices to switch together.</string>
+    <string name="device_connected">Connected</string>
+    <string name="device_select_confirm">%1$d selected</string>
+    <string name="device_select_empty">The app found no supported mouse or keyboard.\nPair a device in Bluetooth settings first.</string>
+    <string name="cd_refresh">Refresh</string>
+    <string name="cd_back">Back</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_overlay">Display over other apps</string>
+    <string name="settings_overlay_on_desc">Switch updates appear while you use other apps.</string>
+    <string name="settings_overlay_off_desc">Allow it to see switch updates while you use other apps. Mouse following works without it.</string>
+    <string name="settings_state_granted">Granted</string>
+    <string name="settings_state_needed">Required</string>
+    <string name="settings_log">Connection log</string>
+    <string name="settings_log_desc">View connection and switch history</string>
+    <string name="settings_log_shown_right">Connection log is open.</string>
+    <string name="settings_log_count">%1$d</string>
+    <string name="log_source_app">App screen</string>
+    <string name="log_source_service">Following service</string>
+    <string name="log_service_stopped">The following service has stopped.</string>
+    <string name="log_service_start_failed">The following service could not start: %1$s</string>
+    <string name="settings_log_folder">Log folder</string>
+    <string name="settings_log_folder_unset">Not selected</string>
+    <string name="settings_log_folder_pick">Choose folder</string>
+    <string name="settings_log_folder_failed">The app cannot use this folder. Choose another folder.</string>
+    <string name="settings_log_save">Auto-save logs</string>
+    <string name="settings_log_folder_change">Change</string>
+    <string name="settings_log_folder_clear">Remove</string>
+    <string name="settings_log_folder_cleared">The app removed the log folder. Files already saved there stay.</string>
+    <string name="settings_log_export">Export logs</string>
+    <string name="log_export">Export</string>
+    <string name="log_saved">The app saved the log.</string>
+    <string name="log_save_file_failed">The app could not save the log. Choose another location.</string>
+    <string name="log_save_failed">The app could not save the log. Check the log folder.</string>
+    <string name="log_save_pending">Saving to the folder is taking longer. The app keeps saving in the background.</string>
+    <string name="log_export_empty">No connection log to export.</string>
+    <string name="settings_keep_mouse">Keep mouse connected</string>
+    <string name="settings_keep_mouse_desc">The app stays connected for faster switching.</string>
+    <string name="settings_language">Language / 언어</string>
+    <string name="settings_lang_ko">한국어</string>
+    <string name="settings_lang_en">English</string>
+    <string name="settings_version">Easy Switch v%1$s</string>
+
+    <!-- "Display over other apps" permission banner -->
+    <string name="perm_banner_title">Show updates over other apps</string>
+    <string name="perm_banner_body">Allow \"Display over other apps\" to see switch results while you use other apps.</string>
+    <string name="perm_banner_manual">Mouse following and updates inside the app work without it.</string>
+    <string name="perm_banner_grant">Allow display over other apps</string>
+
+    <!-- Connection log -->
+    <string name="log_title">Connection log</string>
+    <string name="log_empty">No connection history yet</string>
+
+    <!-- Tablet rail footer status -->
+    <string name="follow_status_on">Mouse following on</string>
+    <string name="follow_status_off">Mouse following off</string>
+
+    <!-- Service messages also use Android system toasts with the launcher icon. -->
+    <string name="toast_switch_title">Switch to channel %1$d</string>
+    <string name="toast_switch_status_complete">Completed</string>
+    <string name="toast_switch_status_failed">Failed</string>
+    <string name="toast_switch_status_switching">Switching</string>
+    <string name="toast_switch_status_unconfirmed">Unconfirmed</string>
+    <string name="toast_device_connected">%1$s connected</string>
+    <string name="toast_switch_no_devices">Switch to channel %1$d\nNo connected devices to switch.</string>
+    <string name="toast_display_test">Easy Switch overlay display test ○ ×</string>
+
+    <!-- Detailed connection failure reasons appear in the connection log. -->
+    <string name="err_not_connected">%1$s is not connected to this Android device</string>
+    <string name="err_gatt_timeout">The app could not connect. Switch the mouse or keyboard back to this Android device\'s Easy Switch channel and try again.</string>
+
+    <!-- Bluetooth permission gate -->
+    <string name="bt_perm_title">Bluetooth access required</string>
+    <string name="bt_perm_body">The app needs Bluetooth access to connect to your mouse and keyboard and switch their channels.</string>
+    <string name="bt_perm_grant">Allow Bluetooth</string>
+    <string name="bt_perm_open_settings">Allow in app settings</string>
+    <string name="bt_perm_settings_body">The permission prompt is no longer available. Allow Nearby devices in the app settings.</string>
+    <string name="bt_perm_settings_failed">The app could not open settings. Allow Nearby devices for this app in system settings.</string>
+
+    <!-- 플로팅 버튼 -->
+    <string name="floating_title">Floating button</string>
+    <string name="floating_in_use">In use</string>
+    <string name="floating_turn_on">Turn on</string>
+    <string name="floating_description">Choose channel 1, 2, or 3 over the Home screen and other apps. To restore a button hidden with X, turn this setting off and on, or press both mouse buttons together inside the app.</string>
+    <string name="floating_permission">Allow “Display over other apps” before turning on the floating button.</string>
+    <string name="floating_transparency">Transparency</string>
+    <string name="floating_size">Size</string>
+    <string name="floating_bounce_animation">Bounce animation</string>
+    <string name="floating_animation_speed">Animation speed</string>
+    <string name="floating_always_show_menu">Always show menu buttons</string>
+    <string name="floating_show">Show floating button</string>
+    <string name="floating_open_app">Open app</string>
+    <string name="floating_notification_channel">Floating button</string>
+    <string name="floating_notification_text">Tap this notification to show the floating button.</string>
+    <string name="floating_notification_zero_size" formatted="false">Button size is set to 0%.</string>
+    <string name="floating_notification_transparent" formatted="false">Transparency is set to 100%.</string>
+    <string name="floating_no_devices">Choose devices to switch on the app’s Devices screen.</string>
+    <string name="settings_expand">Expand options</string>
+    <string name="settings_collapse">Collapse options</string>
+    <string name="floating_home_description">EasySwitch channel menu. Drag to move.</string>
+    <string name="floating_channel_description">Select channel %1$d</string>
+    <string name="floating_open_app_description">Open EasySwitch app</string>
+    <string name="firmware_probe_title">Firmware return test</string>
+    <string name="firmware_probe_instructions">Choose a channel whose host is unavailable. The app sends one switch command to the selected mouse and observes automatic return for up to 60 seconds. The mouse may connect to another registered host if it is available. Flags and cookies remain unchanged. Test records are saved to a file and the connection log.</string>
+    <string name="firmware_probe_running_help">Do not change keyboard channels or press the mouse channel button during the test. If the mouse does not return, select its original channel with the mouse button after the test ends. Closing this window keeps the test running.</string>
+    <string name="firmware_probe_no_mouse">Connect a mouse selected as a switch target to this device.</string>
+    <string name="firmware_probe_destination">Destination channel to test</string>
+    <string name="firmware_probe_preparing">Reading flags and channel cookies.</string>
+    <string name="firmware_probe_observing">Observing automatic return without app reconnection.</string>
+    <string name="firmware_probe_verifying">Checking the channel of the returning mouse.</string>
+    <string name="firmware_probe_elapsed">Elapsed: %1$d s</string>
+    <string name="firmware_probe_finished">The test has ended. Check the connection log for results.</string>
+    <string name="firmware_probe_start">Start test</string>
+    <string name="firmware_probe_stop">Stop test</string>
+    <string name="firmware_probe_close">Close</string>
+</resources>

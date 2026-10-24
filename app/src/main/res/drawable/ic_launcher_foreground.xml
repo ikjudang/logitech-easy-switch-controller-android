@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    핸드오프 시안 1: 태블릿(좌) ↔ 양방향 스왑 화살표 ↔ PC 모니터(우), 흰색.
+    원본은 512px 마스터 SVG(assets/ic_launcher.svg) — 좌표를 그대로 두고
+    그룹 변환으로 108dp 어댑티브 뷰포트의 안전 영역(중앙 66dp 원) 안에 맞춘다.
+    macOS 확대 전경과 같은 비율: 중앙 72dp 바탕 대비 콘텐츠 폭 약 75.2%.
+    scale 0.163125 = 1.16 × 72 / 512, 원본 중심(270, 256)을 (54, 54)에 맞춘다.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.163125"
+        android:scaleY="0.163125"
+        android:translateX="9.95625"
+        android:translateY="12.24">
+        <!-- 태블릿(좌) 외곽선 + 홈 버튼 라인 -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="16"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M125,188 L169,188 A13,13 0 0 1 182,201 L182,311 A13,13 0 0 1 169,324 L125,324 A13,13 0 0 1 112,311 L112,201 A13,13 0 0 1 125,188 Z" />
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="16"
+            android:strokeLineCap="round"
+            android:pathData="M139,311 L155,311" />
+        <!-- 모니터(우) 외곽선 + 받침 -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="16"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M341,200 L417,200 A11,11 0 0 1 428,211 L428,263 A11,11 0 0 1 417,274 L341,274 A11,11 0 0 1 330,263 L330,211 A11,11 0 0 1 341,200 Z" />
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="16"
+            android:strokeLineCap="round"
+            android:pathData="M379,274 L379,296" />
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="16"
+            android:strokeLineCap="round"
+            android:pathData="M356,299 L402,299" />
+        <!-- 양방향 스왑 화살표(면 채움) -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M219,228 L269,228 A7,7 0 0 1 276,235 L276,236 A7,7 0 0 1 269,243 L219,243 A7,7 0 0 1 212,236 L212,235 A7,7 0 0 1 219,228 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M274,216 L300,235.5 L274,255 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M243,270 L293,270 A7,7 0 0 1 300,277 L300,278 A7,7 0 0 1 293,285 L243,285 A7,7 0 0 1 236,278 L236,277 A7,7 0 0 1 243,270 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M238,262 L212,281.5 L238,301 Z" />
+    </group>
+</vector>

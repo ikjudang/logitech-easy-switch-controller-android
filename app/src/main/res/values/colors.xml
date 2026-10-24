@@ -1,0 +1,6 @@
+<resources>
+    <!-- 런처 배경 = 브랜드 바이올렛(핸드오프 point 토큰) -->
+    <color name="ic_launcher_background">#6C3CE0</color>
+    <!-- 앱 화면 배경(bg 토큰) — 시작 시 윈도우 배경용 -->
+    <color name="app_background">#0F1216</color>
+</resources>

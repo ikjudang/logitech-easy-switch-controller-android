@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="114" fill="#6C3CE0"></rect>
+  <g fill="none" stroke="#FFFFFF" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    
+    <rect x="112" y="188" width="70" height="136" rx="13"></rect>
+    <line x1="139" y1="311" x2="155" y2="311"></line>
+    
+    <rect x="330" y="200" width="98" height="74" rx="11"></rect>
+    <line x1="379" y1="274" x2="379" y2="296"></line>
+    <line x1="356" y1="299" x2="402" y2="299"></line>
+  </g>
+  
+  <g fill="#FFFFFF">
+    
+    <rect x="212" y="228" width="64" height="15" rx="7"></rect>
+    <path d="M274 216 L300 235.5 L274 255 Z"></path>
+    
+    <rect x="236" y="270" width="64" height="15" rx="7"></rect>
+    <path d="M238 262 L212 281.5 L238 301 Z"></path>
+  </g>
+</svg>

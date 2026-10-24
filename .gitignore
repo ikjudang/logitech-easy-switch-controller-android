@@ -1,0 +1,79 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/app/build
+.kotlin
+.vscode
+.claude/settings.local.json
+/AGENTS.md
+/AGENT.md
+/plan.md
+
+# Local-only floating rendering and animation implementation.
+/app/src/main/java/com/easyswitchcontroller/floating/ButtonMotion.kt
+/app/src/main/java/com/easyswitchcontroller/floating/ChannelSelectionSequence.kt
+/app/src/main/java/com/easyswitchcontroller/floating/CircleMergeGeometry.kt
+/app/src/main/java/com/easyswitchcontroller/floating/DeleteAbsorption.kt
+/app/src/main/java/com/easyswitchcontroller/floating/DimmingMotion.kt
+/app/src/main/java/com/easyswitchcontroller/floating/FloatingAnimationSpeed.kt
+/app/src/main/java/com/easyswitchcontroller/floating/FloatingBubbleView.kt
+/app/src/main/java/com/easyswitchcontroller/floating/FloatingDeleteTargetView.kt
+/app/src/main/java/com/easyswitchcontroller/floating/FloatingMenuGeometry.kt
+/app/src/main/java/com/easyswitchcontroller/floating/FloatingMotionSpec.kt
+/app/src/main/java/com/easyswitchcontroller/floating/FloatingOverlayController.kt
+/app/src/main/java/com/easyswitchcontroller/floating/FloatingResizeClock.kt
+/app/src/main/java/com/easyswitchcontroller/floating/FloatingSize.kt
+/app/src/main/java/com/easyswitchcontroller/floating/LiquidMotion.kt
+/app/src/androidTest/java/com/easyswitchcontroller/floating/FloatingResizeRenderTest.kt
+/app/src/androidTest/java/com/easyswitchcontroller/floating/FloatingSpeedRenderDiagnosticTest.kt
+/app/src/androidTest/java/com/easyswitchcontroller/floating/KeyboardFloatingFeedbackTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/ButtonMotionTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/ChannelSelectionSequenceTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/CircleMergeGeometryTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/DeleteAbsorptionTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/DimmingMotionTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/FloatingAnimationSpeedTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/FloatingMenuGeometryTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/FloatingResizeClockTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/FloatingSizeTest.kt
+/app/src/test/java/com/easyswitchcontroller/floating/LiquidMotionTest.kt
+
+# Handoff source copies/patches stay local; static PNG/SVG previews remain eligible.
+/docs/handoff/**/reference-source/
+/docs/handoff/**/*.patch
+/docs/handoff/**/*.diff
+/docs/handoff/**/delivery-status.json
+/validation/design/floating-app-menu*.html
+/.codex-remote-attachments/
+__pycache__/
+
+# Detailed plans, specifications, handoff history, and reference source stay local.
+/LEGACY.md
+/logi-easyswitch-android-prompt.md
+/validation/**/*.md
+/validation/design/
+/docs/handoff/**
+!/docs/handoff/**/
+!/docs/handoff/**/*.png
+!/docs/handoff/**/*.svg
+!/docs/handoff/**/*.jpg
+!/docs/handoff/**/*.jpeg
+!/docs/handoff/**/*.webp
+!/docs/handoff/README.md
+/docs/handoff/**/bounce-timelines.*
+/앱 아이콘 및 GUI 개선안-handoff.zip
+/앱 아이콘 및 GUI 개선안-handoff/**
+!/앱 아이콘 및 GUI 개선안-handoff/**/
+!/앱 아이콘 및 GUI 개선안-handoff/**/*.png
+!/앱 아이콘 및 GUI 개선안-handoff/**/*.svg
+!/앱 아이콘 및 GUI 개선안-handoff/**/*.jpg
+!/앱 아이콘 및 GUI 개선안-handoff/**/*.jpeg
+!/앱 아이콘 및 GUI 개선안-handoff/**/*.webp
+/앱 아이콘 및 GUI 개선안-handoff/gui/project/screenshots/icons.png
