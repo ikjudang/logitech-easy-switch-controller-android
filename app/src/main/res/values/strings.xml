@@ -51,6 +51,7 @@
 
     <!-- 설정 -->
     <string name="settings_title">설정</string>
+    <string name="settings_toast">토스트</string>
     <string name="settings_overlay">다른 앱 위에 표시</string>
     <string name="settings_overlay_on_desc">다른 앱을 쓰는 중에도 전환 안내가 떠요.</string>
     <string name="settings_overlay_off_desc">허용하면 다른 앱을 쓰는 중에도 전환 안내가 떠요. 마우스 따라가기는 허용하지 않아도 동작해요.</string>
@@ -124,6 +125,7 @@
 
     <!-- 플로팅 버튼 -->
     <string name="floating_title">플로팅 버튼</string>
+    <string name="floating_unavailable">이 빌드에는 플로팅 버튼이 포함돼 있지 않습니다. 플로팅 버튼을 쓰려면 릴리즈 페이지의 별도 빌드 APK를 설치해 주세요.</string>
     <string name="floating_in_use">사용 중</string>
     <string name="floating_turn_on">켜기</string>
     <string name="floating_description">홈 화면과 다른 앱 위에서 채널 1·2·3을 선택할 수 있습니다. X로 숨긴 버튼은 이 설정을 껐다 켜거나, 앱 화면에서 마우스 좌우 버튼을 동시에 눌러 다시 표시할 수 있습니다.</string>

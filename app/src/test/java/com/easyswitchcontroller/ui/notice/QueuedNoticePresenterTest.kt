@@ -19,6 +19,7 @@ class QueuedNoticePresenterTest {
         val messages = mutableListOf<String>()
         val ongoing = mutableListOf<Boolean>()
         var dismissals = 0
+        var appearanceUpdates = 0
         var works = true
         var throws = false
         override fun show(message: CharSequence, ongoing: Boolean): Boolean {
@@ -28,6 +29,33 @@ class QueuedNoticePresenterTest {
             return works
         }
         override fun dismiss() { dismissals++ }
+        override fun updateAppearance() { appearanceUpdates++ }
+    }
+
+    @Test fun appearanceUpdatesDoNotCreateAnUnusedWindow() {
+        val owner = Queue()
+        var created = 0
+        val presenter = QueuedNoticePresenter(owner::post, { it() }, { created++; Renderer() }, {})
+        presenter.updateAppearance()
+        owner.drain()
+        assertEquals(0, created)
+    }
+
+    @Test fun appearanceUpdatesUseTheOwnerQueueWithoutCancellingAPendingToast() {
+        val owner = Queue()
+        val renderer = Renderer()
+        val presenter = QueuedNoticePresenter(owner::post, { it() }, { renderer }, {})
+        presenter.show("pending", false)
+        presenter.updateAppearance()
+        assertEquals(0, renderer.appearanceUpdates)
+        owner.drain()
+        assertEquals(listOf("pending"), renderer.messages)
+        assertEquals(1, renderer.appearanceUpdates)
+        assertEquals(0, renderer.dismissals)
+        presenter.close {}
+        presenter.updateAppearance()
+        owner.drain()
+        assertEquals(1, renderer.appearanceUpdates)
     }
 
     @Test fun submittingDoesNotConstructOrMeasureAWindowOnTheCaller() {

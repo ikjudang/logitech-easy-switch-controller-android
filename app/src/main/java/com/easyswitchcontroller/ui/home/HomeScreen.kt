@@ -17,7 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,9 +57,9 @@ fun HomeScreen(
     overlayOn: Boolean,
     onOpenDevices: () -> Unit,
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val followRunning by FollowStatus.running.collectAsState()
-    val activeChannel by FollowStatus.activeChannel.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val followRunning by FollowStatus.running.collectAsStateWithLifecycle()
+    val activeChannel by FollowStatus.activeChannel.collectAsStateWithLifecycle()
     var editingChannel by remember { mutableStateOf<Int?>(null) }
     var renameAnchor by remember { mutableStateOf(IntRect.Zero) }
     val context = LocalContext.current
@@ -182,9 +182,9 @@ fun HomeTabletContent(
     split: Boolean,
     onOpenDevices: () -> Unit,
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val followRunning by FollowStatus.running.collectAsState()
-    val activeChannel by FollowStatus.activeChannel.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val followRunning by FollowStatus.running.collectAsStateWithLifecycle()
+    val activeChannel by FollowStatus.activeChannel.collectAsStateWithLifecycle()
     var editingChannel by remember { mutableStateOf<Int?>(null) }
     var renameAnchor by remember { mutableStateOf(IntRect.Zero) }
     val context = LocalContext.current

@@ -6,6 +6,74 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NoticeDispatcherTest {
+    @Test fun disablingClosesTheActiveToastWithoutFallingBackOrReplayingIt() {
+        val dispatcher = NoticeDispatcher({ 0L })
+        val system = Presenter()
+        val foreground = Presenter()
+        dispatcher.attachSystem(system)
+        dispatcher.attachForeground(foreground)
+        dispatcher.show("visible", ongoing = true)
+        dispatcher.setEnabled(false)
+        assertEquals(1, system.dismissals)
+        assertTrue(dispatcher.show("suppressed failure"))
+        dispatcher.detachSystem(system)
+        dispatcher.setEnabled(true)
+        assertTrue(foreground.messages.isEmpty())
+        dispatcher.show("new result")
+        assertEquals(listOf("new result"), foreground.messages)
+    }
+
+    @Test fun disablingDropsNoticesThatWereWaitingForAPresenter() {
+        val dispatcher = NoticeDispatcher({ 0L })
+        dispatcher.show("waiting")
+        dispatcher.setEnabled(false)
+        dispatcher.show("disabled connection")
+        val presenter = Presenter()
+        dispatcher.attachSystem(presenter)
+        dispatcher.setEnabled(true)
+        dispatcher.detachSystem(presenter)
+        dispatcher.attachSystem(presenter)
+        assertTrue(presenter.messages.isEmpty())
+        dispatcher.show("fresh")
+        assertEquals(listOf("fresh"), presenter.messages)
+    }
+
+    @Test fun disablingAlsoCancelsAWindowQueuedOnItsOwnerThread() {
+        val owner = ArrayDeque<() -> Unit>()
+        val renderer = Presenter()
+        var created = 0
+        val queued = QueuedNoticePresenter({ owner.addLast(it); true }, { it() },
+            { created++; renderer }, { error("Unexpected fallback") })
+        val dispatcher = NoticeDispatcher({ 0L })
+        dispatcher.attachSystem(queued)
+        dispatcher.show("queued")
+        dispatcher.setEnabled(false)
+        while (owner.isNotEmpty()) owner.removeFirst()()
+        assertEquals(0, created)
+        dispatcher.setEnabled(true)
+        assertTrue(renderer.messages.isEmpty())
+        dispatcher.show("fresh")
+        while (owner.isNotEmpty()) owner.removeFirst()()
+        assertEquals(listOf("fresh"), renderer.messages)
+    }
+
+    @Test fun appearanceUpdatesDoNotRecreateOrExtendTheActiveToast() {
+        var now = 0L
+        val dispatcher = NoticeDispatcher({ now })
+        val presenter = Presenter()
+        dispatcher.attachSystem(presenter)
+        dispatcher.show("result")
+        now = 1_900L
+        dispatcher.updateAppearance()
+        assertEquals(1, presenter.appearanceUpdates)
+        assertEquals(listOf("result"), presenter.messages)
+        assertEquals(0, presenter.dismissals)
+        now = 2_000L
+        val replacement = Presenter()
+        dispatcher.attachSystem(replacement)
+        assertTrue(replacement.messages.isEmpty())
+    }
+
     @Test fun aSlowMouseUpdatesTheSamePresenterAndEndsTheOngoingState() {
         var now = 0L
         val dispatcher = NoticeDispatcher({ now })
@@ -44,6 +112,7 @@ class NoticeDispatcherTest {
     private class Presenter(var works: Boolean = true) : NoticePresenter {
         val messages = mutableListOf<String>()
         var dismissals = 0
+        var appearanceUpdates = 0
         val ongoingStates = mutableListOf<Boolean>()
         override fun show(message: CharSequence, ongoing: Boolean): Boolean {
             ongoingStates += ongoing
@@ -51,6 +120,7 @@ class NoticeDispatcherTest {
             return works
         }
         override fun dismiss() { dismissals++ }
+        override fun updateAppearance() { appearanceUpdates++ }
     }
 
     @Test fun identicalNoticesAreDeliveredEveryTimeWithoutARateLimit() {

@@ -3,6 +3,7 @@ package com.easyswitchcontroller.ui.channel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.easyswitchcontroller.data.ConnectionLog
+import com.easyswitchcontroller.data.appendCapped
 import com.easyswitchcontroller.device.DeviceKind
 import com.easyswitchcontroller.device.LogiDevice
 import com.easyswitchcontroller.device.SwitchResult
@@ -62,8 +63,6 @@ data class ChannelUiState(
     /** 채널(1-based) → 사용자 라벨(예: "회사 PC"). */
     val labels: Map<Int, String> = emptyMap(),
     val busy: Boolean = false,
-    /** 실패가 조용히 나는 영역이라 모든 단계를 화면 로그로 노출한다. */
-    val log: List<String> = emptyList(),
 ) {
     val connectedLocalChannels: Set<Int> get() = devices.filter { it.connected }.mapNotNull { it.localChannel }.toSet()
     fun labelOrDefault(channel1Based: Int): String = labels[channel1Based] ?: "Easy Switch $channel1Based"
@@ -110,6 +109,9 @@ class ChannelViewModel(
         ),
     )
     val uiState = _uiState.asStateFlow()
+    // 진단 기록만 바뀌었을 때 홈 전체의 UI 상태를 다시 발행하지 않는다.
+    private val _log = MutableStateFlow<List<String>>(emptyList())
+    val log = _log.asStateFlow()
 
     /** 준비 진행 중인 기기 index. 준비 완료(featureIndex 확보) 후에는 다시 건드리지 않는다(라디오 부하 억제). */
     private val preparing = mutableSetOf<Int>()
@@ -503,6 +505,6 @@ class ChannelViewModel(
         android.util.Log.d("HidppApp", line)
         // VM 로컬 로그(테스트 관측용)와 전역 로그(연결 로그 화면·프로세스 수명)에 함께 남긴다.
         ConnectionLog.append(line, level)
-        _uiState.update { it.copy(log = (it.log + line).takeLast(200)) }
+        _log.update { appendCapped(it, line, 200) }
     }
 }

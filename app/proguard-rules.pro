@@ -1,2 +1,2 @@
-# 기본 ProGuard 규칙. 현재 릴리스 빌드는 minify 비활성.
-# 향후 minify 활성화 시 HID++ 순수 로직/모델 보존 규칙을 여기에 추가.
+# Android·AndroidX의 기본 규칙과 라이브러리 consumer 규칙을 사용한다.
+# BluetoothDevice 리플렉션 대상은 플랫폼 클래스이므로 앱 전체 keep은 필요하지 않다.

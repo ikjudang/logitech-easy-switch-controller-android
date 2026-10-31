@@ -20,7 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,8 +45,8 @@ import com.easyswitchcontroller.ui.theme.Tokens
 fun FirmwareReturnProbeEntry(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val model = remember { ChannelRuntime.get(context) }
-    val channels by model.uiState.collectAsState()
-    val probe by model.firmwareProbe.collectAsState()
+    val channels by model.uiState.collectAsStateWithLifecycle()
+    val probe by model.firmwareProbe.collectAsStateWithLifecycle()
     var open by rememberSaveable { mutableStateOf(false) }
     var address by rememberSaveable { mutableStateOf<String?>(null) }
     var target by rememberSaveable { mutableStateOf<Int?>(null) }

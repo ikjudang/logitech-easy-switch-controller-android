@@ -3,6 +3,7 @@ package com.easyswitchcontroller.ble
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import com.easyswitchcontroller.BuildConfig
 import com.easyswitchcontroller.R
 import android.util.Log
 import com.easyswitchcontroller.config.ProtocolConfig
@@ -92,7 +93,7 @@ class BleTransport(
             }
 
             val std = fromBleFrame(rawBle)
-            Log.d(TAG, "response: ble=${rawBle.toHex()} -> std=${std.toHex()}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "response: ble=${rawBle.toHex()} -> std=${std.toHex()}")
             if (HidppFrameParser.isError(std)) {
                 throw HidppProtocolException(HidppFrameParser.parseError(std)!!)
             }

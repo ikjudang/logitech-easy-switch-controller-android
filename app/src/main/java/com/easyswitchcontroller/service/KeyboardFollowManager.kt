@@ -35,6 +35,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -161,109 +162,121 @@ class KeyboardFollowManager(
         wantedKeyboards = wanted
         watches.keys.filter { it !in wanted }.forEach { removeWatch(it) }
 
-        // 한 기기의 GATT가 살아 있다는 이유로 나머지 선택 키보드의 감시를 생략하지 않는다.
-        for (info in candidates) {
-            val existing = watches[info.address]
-            if (existing?.device?.connectionState?.value == ConnectionState.ServicesReady) continue
-            val name = info.name
-            removeWatch(info.address)
-            val device = ServiceLocator.device(context.applicationContext, info, DeviceKind.KEYBOARD)
-            if (device.switchGraceActive) continue
-            // 구독은 연결 전에 건다. 키보드가 붙자마자 다시 떠나면 전환 신호는 현재 슬롯 조회가 끝나기 전에 온다
-            // (2026-10-20 12:43 실측: 연결 0.9초, 조회 단계에서 실패) — 조회 뒤에 구독하면 그 신호는 버려진다.
-            // 슬롯을 알기 전에 온 프레임은 붙잡아 뒀다가 처리한다. 지난번에 확인한 슬롯이 있으면 그걸로 바로 처리한다
-            // — 슬롯을 모른 채 해석하면 도착 공지를 출발로 오인할 수 있다.
-            val known = device.cachedFeatureIndex(HidppConstants.FEATURE_CHANGE_HOST)?.let { index ->
-                device.localHostIndex?.let { EarlySignalGate.Route(index, it) }
-            }
-            val gate = EarlySignalGate<HidppFrame>(known)
-            val eventJob = worker.launch(start = CoroutineStart.UNDISPATCHED) {
-                device.notifications.collect { frame ->
-                    // 아래 조회의 응답도 같은 흐름으로 온다. 응답은 요청의 software id를 에코하고 기기가 스스로
-                    // 보낸 이벤트는 0이다 — 응답은 요청한 쪽이 받으니 여기서는 신호로 세지 않는다.
-                    if (frame.softwareId != 0) return@collect
-                    val route = gate.offer(frame) ?: return@collect
-                    if (!gate.ready && frame.featureIndex == route.featureIndex) {
-                        ConnectionLog.append(
-                            "$name: 감시 준비 중에 신호를 받았어요(지난번에 확인한 이 기기 ch${route.localHost + 1} 기준으로 처리해요)",
-                            ConnectionLog.Level.Dim,
-                        )
-                    }
-                    survive(::noteLoopError) { handleFrame(device, route.featureIndex, route.localHost, frame) }
+        // 한 기기의 GATT가 살아 있다는 이유로 나머지 선택 키보드의 감시를 생략하지 않는다. 키보드마다 병렬로 붙어, 연결이
+        // 느리거나 실패하는 키보드 하나가 나머지의 감시 시작을 그 시간만큼 미루지 않는다(전체 소요는 합이 아니라 최댓값).
+        coroutineScope {
+            candidates.map { info ->
+                async {
+                    try { attachKeyboard(info) }
+                    catch (error: CancellationException) { throw error }
+                    catch (error: Exception) { noteLoopError(error) }
                 }
-            }
-            // 실패 로그에 어느 단계였는지 남긴다 — 같은 1초 시간 초과도 CCCD(연결 단계)와 응답 대기는 원인이 다르다.
-            var step = "연결"
-            try {
-                device.connect()
-                // 여기서부터 신호를 받을 수 있다(알림 켜짐). 키보드가 돌아온 시각과의 차이가 남은 빈틈이다.
-                val listeningAt = SystemClock.elapsedRealtime()
-                step = "0x1814 조회"
-                val index = device.getFeatureIndex(HidppConstants.FEATURE_CHANGE_HOST)
-                step = "현재 호스트 조회"
-                val host = ChangeHostFeature.parseGetHostInfo(device.request(ChangeHostFeature.buildGetHostInfo(index)))
-                device.rememberLocalHost(host.currentHost)
-                FollowStatus.rememberLocalChannel(info.address, host.currentHost + 1)
-                currentCoroutineContext().ensureActive()
-                if (known != null && known.localHost != host.currentHost) {
+            }.awaitAll()
+        }
+    }
+
+    /** 선택된 키보드 하나의 감시를 붙인다. [ensureWatching]이 잡은 뮤텍스 안에서, 키보드마다 병렬로 불린다. */
+    private suspend fun attachKeyboard(info: BondedDeviceInfo) {
+        val existing = watches[info.address]
+        if (existing?.device?.connectionState?.value == ConnectionState.ServicesReady) return
+        val name = info.name
+        removeWatch(info.address)
+        val device = ServiceLocator.device(context.applicationContext, info, DeviceKind.KEYBOARD)
+        if (device.switchGraceActive) return
+        // 구독은 연결 전에 건다. 키보드가 붙자마자 다시 떠나면 전환 신호는 현재 슬롯 조회가 끝나기 전에 온다
+        // (2026-10-20 12:43 실측: 연결 0.9초, 조회 단계에서 실패) — 조회 뒤에 구독하면 그 신호는 버려진다.
+        // 슬롯을 알기 전에 온 프레임은 붙잡아 뒀다가 처리한다. 지난번에 확인한 슬롯이 있으면 그걸로 바로 처리한다
+        // — 슬롯을 모른 채 해석하면 도착 공지를 출발로 오인할 수 있다.
+        val known = device.cachedFeatureIndex(HidppConstants.FEATURE_CHANGE_HOST)?.let { index ->
+            device.localHostIndex?.let { EarlySignalGate.Route(index, it) }
+        }
+        val gate = EarlySignalGate<HidppFrame>(known)
+        val eventJob = worker.launch(start = CoroutineStart.UNDISPATCHED) {
+            device.notifications.collect { frame ->
+                // 아래 조회의 응답도 같은 흐름으로 온다. 응답은 요청의 software id를 에코하고 기기가 스스로
+                // 보낸 이벤트는 0이다 — 응답은 요청한 쪽이 받으니 여기서는 신호로 세지 않는다.
+                if (frame.softwareId != 0) return@collect
+                val route = gate.offer(frame) ?: return@collect
+                if (!gate.ready && frame.featureIndex == route.featureIndex) {
                     ConnectionLog.append(
-                        "$name: 이 기기 슬롯이 바뀌었어요(ch${known.localHost + 1} → ch${host.currentHost + 1})",
+                        "$name: 감시 준비 중에 신호를 받았어요(지난번에 확인한 이 기기 ch${route.localHost + 1} 기준으로 처리해요)",
                         ConnectionLog.Level.Dim,
                     )
                 }
-                // 붙잡아 둔 프레임 중 0x1814 것만 신호다(배터리 등 다른 기능의 이벤트도 함께 쌓인다).
-                val held = gate.open(EarlySignalGate.Route(index, host.currentHost)).filter { it.featureIndex == index }
-                if (held.isNotEmpty()) {
-                    ConnectionLog.append("$name: 감시 준비 중에 받은 신호 ${held.size}개를 처리해요", ConnectionLog.Level.Dim)
-                    held.forEach { frame -> survive(::noteLoopError) { handleFrame(device, index, host.currentHost, frame) } }
-                }
-                device.heldByService = true
-                val stateJob = worker.launch {
-                    var previous: ConnectionState? = null
-                    device.connectionState.collect { state ->
-                        FollowStatus.setKeyboardConnected(info.address, state == ConnectionState.ServicesReady)
-                        // 감시 GATT가 닫히는 순간을 남긴다(잡힌 순간은 "준비됨"이 남긴다). OS 끊김 알림 없이
-                        // 이 줄만 있으면 ACL은 그대로인데 GATT만 닫혀 전환 신호를 못 받던 공백이다.
-                        if (state == ConnectionState.Disconnected && previous != null && previous != state) {
-                            ConnectionLog.append("${info.name}: GATT 재연결 대기…", ConnectionLog.Level.Dim)
-                        }
-                        previous = state
+                survive(::noteLoopError) { handleFrame(device, route.featureIndex, route.localHost, frame) }
+            }
+        }
+        // 실패 로그에 어느 단계였는지 남긴다 — 같은 1초 시간 초과도 CCCD(연결 단계)와 응답 대기는 원인이 다르다.
+        var step = "연결"
+        try {
+            device.connect()
+            // 여기서부터 신호를 받을 수 있다(알림 켜짐). 키보드가 돌아온 시각과의 차이가 남은 빈틈이다.
+            val listeningAt = SystemClock.elapsedRealtime()
+            step = "0x1814 조회"
+            val index = device.getFeatureIndex(HidppConstants.FEATURE_CHANGE_HOST)
+            step = "현재 호스트 조회"
+            val host = ChangeHostFeature.parseGetHostInfo(device.request(ChangeHostFeature.buildGetHostInfo(index)))
+            device.rememberLocalHost(host.currentHost)
+            FollowStatus.rememberLocalChannel(info.address, host.currentHost + 1)
+            currentCoroutineContext().ensureActive()
+            if (known != null && known.localHost != host.currentHost) {
+                ConnectionLog.append(
+                    "$name: 이 기기 슬롯이 바뀌었어요(ch${known.localHost + 1} → ch${host.currentHost + 1})",
+                    ConnectionLog.Level.Dim,
+                )
+            }
+            // 붙잡아 둔 프레임 중 0x1814 것만 신호다(배터리 등 다른 기능의 이벤트도 함께 쌓인다).
+            val held = gate.open(EarlySignalGate.Route(index, host.currentHost)).filter { it.featureIndex == index }
+            if (held.isNotEmpty()) {
+                ConnectionLog.append("$name: 감시 준비 중에 받은 신호 ${held.size}개를 처리해요", ConnectionLog.Level.Dim)
+                held.forEach { frame -> survive(::noteLoopError) { handleFrame(device, index, host.currentHost, frame) } }
+            }
+            device.heldByService = true
+            val stateJob = worker.launch {
+                var previous: ConnectionState? = null
+                device.connectionState.collect { state ->
+                    FollowStatus.setKeyboardConnected(info.address, state == ConnectionState.ServicesReady)
+                    // 감시 GATT가 닫히는 순간을 남긴다(잡힌 순간은 "준비됨"이 남긴다). OS 끊김 알림 없이
+                    // 이 줄만 있으면 ACL은 그대로인데 GATT만 닫혀 전환 신호를 못 받던 공백이다.
+                    if (state == ConnectionState.Disconnected && previous != null && previous != state) {
+                        ConnectionLog.append("${info.name}: GATT 재연결 대기…", ConnectionLog.Level.Dim)
                     }
+                    previous = state
                 }
-                watches[info.address] = Watch(device, host.currentHost, stateJob, eventJob)
-                gate.ready = true
-                FollowStatus.setKeyboardConnected(info.address, true)
-                val streak = failStreaks.remove(info.address) ?: 0
-                lastFailLogAt.remove(info.address)
-                val previousReady = readyAt.put(info.address, SystemClock.elapsedRealtime()) ?: 0L
-                // 돌아온 뒤 처음 준비될 때만 잰다. 실패한 시도가 있었다면 그 시간까지 포함한 실제 빈틈이다.
-                val gap = arrivedAt[info.address]?.takeIf { it > previousReady }
-                    ?.let { ", 연결 알림 뒤 %.2f초부터 신호 수신".format((listeningAt - it) / 1000.0) }.orEmpty()
-                val ready = "$name: 키보드 전환 감지 준비됨 (0x1814=0x%02X, 이 기기 ch%d, 재시도 %d%s)"
-                    .format(index, host.currentHost + 1, streak, gap)
-                ConnectionLog.append(ready, ConnectionLog.Level.Success)
-                // 자동 재연결마다 대기 토스트를 반복해 전환 결과를 덮지 않는다.
-            } catch (error: CancellationException) {
-                currentCoroutineContext().ensureActive()
-                noteWatchFailure(info, error, step)
-            } catch (error: Exception) {
-                noteWatchFailure(info, error, step)
-            } finally {
-                if (!watches.containsKey(info.address)) {
-                    eventJob.cancel()
-                    // 슬롯을 끝내 몰라 처리하지 못한 프레임 — 마우스가 안 따라간 이유를 로그에서 바로 찾게 남긴다.
-                    // 이 기기에서 처음 잡는 감시라 0x1814 index도 몰라서, 기능을 가리지 않고 센다.
-                    val dropped = gate.drain()
-                    if (dropped.isNotEmpty()) {
-                        val raw = dropped.first().rawHex()
-                        ConnectionLog.append(
-                            "$name: 감시 준비 중에 받은 프레임 ${dropped.size}개를 처리하지 못했어요(이 기기 슬롯을 몰라요, 첫 프레임 $raw)",
-                            ConnectionLog.Level.Dim,
-                        )
-                    }
-                    device.heldByService = false
-                    withContext(NonCancellable) { runCatching { device.disconnect(force = true) } }
+            }
+            watches[info.address] = Watch(device, host.currentHost, stateJob, eventJob)
+            gate.ready = true
+            FollowStatus.setKeyboardConnected(info.address, true)
+            val streak = failStreaks.remove(info.address) ?: 0
+            lastFailLogAt.remove(info.address)
+            val previousReady = readyAt.put(info.address, SystemClock.elapsedRealtime()) ?: 0L
+            // 돌아온 뒤 처음 준비될 때만 잰다. 실패한 시도가 있었다면 그 시간까지 포함한 실제 빈틈이다.
+            val gap = arrivedAt[info.address]?.takeIf { it > previousReady }
+                ?.let { ", 연결 알림 뒤 %.2f초부터 신호 수신".format((listeningAt - it) / 1000.0) }.orEmpty()
+            val ready = "$name: 키보드 전환 감지 준비됨 (0x1814=0x%02X, 이 기기 ch%d, 재시도 %d%s)"
+                .format(index, host.currentHost + 1, streak, gap)
+            ConnectionLog.append(ready, ConnectionLog.Level.Success)
+            // 자동 재연결마다 대기 토스트를 반복해 전환 결과를 덮지 않는다.
+        } catch (error: CancellationException) {
+            currentCoroutineContext().ensureActive()
+            noteWatchFailure(info, error, step)
+        } catch (error: Exception) {
+            noteWatchFailure(info, error, step)
+        } finally {
+            if (!watches.containsKey(info.address)) {
+                eventJob.cancel()
+                // 슬롯을 끝내 몰라 처리하지 못한 프레임 — 마우스가 안 따라간 이유를 로그에서 바로 찾게 남긴다.
+                // 이 기기에서 처음 잡는 감시라 0x1814 index도 몰라서, 기능을 가리지 않고 센다.
+                val dropped = gate.drain()
+                if (dropped.isNotEmpty()) {
+                    val raw = dropped.first().rawHex()
+                    ConnectionLog.append(
+                        "$name: 감시 준비 중에 받은 프레임 ${dropped.size}개를 처리하지 못했어요(이 기기 슬롯을 몰라요, 첫 프레임 $raw)",
+                        ConnectionLog.Level.Dim,
+                    )
                 }
+                device.heldByService = false
+                withContext(NonCancellable) { runCatching { device.disconnect(force = true) } }
             }
         }
     }

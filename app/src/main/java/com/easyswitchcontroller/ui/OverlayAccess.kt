@@ -10,6 +10,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 
 /**
@@ -20,11 +23,14 @@ import kotlinx.coroutines.delay
 @Composable
 fun rememberOverlayGranted(): State<Boolean> {
     val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val granted = remember { mutableStateOf(Settings.canDrawOverlays(context)) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            granted.value = Settings.canDrawOverlays(context)
-            delay(1500)
+    LaunchedEffect(context, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                granted.value = Settings.canDrawOverlays(context)
+                delay(1500)
+            }
         }
     }
     return granted

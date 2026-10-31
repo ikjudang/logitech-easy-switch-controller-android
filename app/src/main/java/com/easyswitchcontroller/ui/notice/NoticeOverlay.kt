@@ -1,6 +1,7 @@
 package com.easyswitchcontroller.ui.notice
 
 import android.app.Activity
+import com.easyswitchcontroller.BuildConfig
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
@@ -14,7 +15,6 @@ import android.os.Process
 import android.os.SystemClock
 import android.provider.Settings
 import android.text.TextUtils
-import android.text.StaticLayout
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
@@ -29,7 +29,6 @@ import androidx.core.view.doOnPreDraw
 import androidx.appcompat.app.AppCompatDelegate
 import com.easyswitchcontroller.R
 import com.easyswitchcontroller.data.ConnectionLog
-import com.easyswitchcontroller.data.SelectionStore
 import com.easyswitchcontroller.device.SwitchIndicator
 import kotlin.math.ceil
 
@@ -57,14 +56,19 @@ abstract class NoticeOverlay(private val context: Context,
 
     final override fun show(message: CharSequence, ongoing: Boolean): Boolean {
         check(Looper.myLooper() == ownerLooper)
+        if (!NoticePreferences.load(context).enabled) {
+            dismiss()
+            return true
+        }
         val existing = bubble
         if (existing == null && !available()) return false
         val reused = existing != null
         val root = existing ?: createBubble()
+        updateBackground(root)
         // 처음 창을 붙일 때부터 최종 크기를 사용한다.
         val fixed = updateContent(message)
-        val width = dp(PADDING_X_DP) * 2 + dp(ICON_SIZE_DP) + dp(ICON_GAP_DP) + fixed.contentWidth
-        val height = dp(PADDING_Y_DP) * 2 + maxOf(dp(ICON_SIZE_DP), fixed.contentHeight)
+        val width = dp(PADDING_DP) * 2 + dp(ICON_SIZE_DP) + dp(ICON_GAP_DP) + fixed.contentWidth
+        val height = dp(PADDING_DP) * 2 + maxOf(dp(ICON_SIZE_DP), fixed.contentHeight)
         val layout = windowLayout ?: NoticeWindowLayout(dp(64), dp(8)).also { windowLayout = it }
         val changed = layout.update(width, height)
         if (existing == null) {
@@ -90,7 +94,7 @@ abstract class NoticeOverlay(private val context: Context,
             relayout(root, changed.width, changed.height, changed.bottom)
         }
         val frame = ++generation
-        root.doOnPreDraw {
+        if (BuildConfig.DEBUG) root.doOnPreDraw {
             if (frame == generation && bubble === root && root.isShown) {
                 val action = if (reused) "내용 갱신" else "창 추가"
                 Log.i("AppToast", "오버레이 표시됨 [$frame, $action]: $message")
@@ -125,13 +129,27 @@ abstract class NoticeOverlay(private val context: Context,
         }
     }
 
+    final override fun updateAppearance() {
+        check(Looper.myLooper() == ownerLooper)
+        bubble?.let(::updateBackground)
+    }
+
+    private fun updateBackground(view: View) {
+        val appearance = NoticePreferences.load(context)
+        // 배경 알파를 따로 낮추면 전체 알파와 중복 적용된다.
+        (view.background as GradientDrawable).setColor(appearance.backgroundColor)
+        applyOpacity(view, appearance.opacity)
+    }
+
+    protected open fun applyOpacity(view: View, opacity: Float) { view.alpha = opacity }
+
     private fun createBubble(): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.TOP
         clipToPadding = false
-        setPadding(dp(PADDING_X_DP), dp(PADDING_Y_DP), dp(PADDING_X_DP), dp(PADDING_Y_DP))
+        setPadding(dp(PADDING_DP), dp(PADDING_DP), dp(PADDING_DP), dp(PADDING_DP))
         background = GradientDrawable().apply {
-            setColor(0xF0303030.toInt())
+            setColor(NoticePreferences.load(context).backgroundColor)
             cornerRadius = dp(24).toFloat()
         }
         elevation = dp(6).toFloat()
@@ -174,7 +192,7 @@ abstract class NoticeOverlay(private val context: Context,
         val devices = message as? DeviceNoticeMessage
         val key = FrameKey(Configuration(context.resources.configuration), context.resources.displayMetrics.widthPixels,
             context.resources.displayMetrics.heightPixels, AppCompatDelegate.getApplicationLocales().toLanguageTags(),
-            devices?.rows?.map { it.name }, devices?.title != null, (message as? SwitchNoticeMessage)?.operationId,
+            devices?.rows?.size, devices?.title, (message as? SwitchNoticeMessage)?.operationId,
             message.takeUnless { it is DeviceNoticeMessage }?.toString())
         val previousKey = frameKey
         val sameSwitch = key.operationId != null && previousKey?.operationId == key.operationId &&
@@ -194,6 +212,7 @@ abstract class NoticeOverlay(private val context: Context,
             title.visibility = View.VISIBLE
             title.text = message
             title.maxLines = 6
+            title.ellipsize = TextUtils.TruncateAt.END
             title.minHeight = fixed.headerHeight
             title.layoutParams = title.layoutParams.apply { height = ViewGroup.LayoutParams.WRAP_CONTENT }
             rows.visibility = View.GONE
@@ -202,8 +221,9 @@ abstract class NoticeOverlay(private val context: Context,
 
         title.visibility = if (devices.title == null) View.GONE else View.VISIBLE
         title.text = devices.title
-        title.maxLines = 1
-        title.gravity = Gravity.CENTER_VERTICAL
+        title.maxLines = Int.MAX_VALUE
+        title.ellipsize = null
+        title.gravity = Gravity.START or Gravity.CENTER_VERTICAL
         title.minHeight = fixed.headerHeight
         title.layoutParams = title.layoutParams.apply { height = fixed.headerHeight }
         rows.visibility = View.VISIBLE
@@ -215,8 +235,16 @@ abstract class NoticeOverlay(private val context: Context,
             rowLabels.removeAt(rowLabels.lastIndex)
         }
         while (rowLabels.size < devices.rows.size) {
-            val name = createLabel().apply { maxLines = 1; includeFontPadding = false }
-            val status = createLabel().apply { maxLines = 1; includeFontPadding = false }
+            val name = createLabel().apply {
+                maxLines = 1
+                includeFontPadding = false
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            }
+            val status = createLabel().apply {
+                includeFontPadding = false
+                ellipsize = null
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            }
             rows.addView(LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -229,6 +257,19 @@ abstract class NoticeOverlay(private val context: Context,
         }
         devices.rows.forEachIndexed { index, row ->
             val (name, status) = rowLabels[index]
+            val rowView = name.parent as LinearLayout
+            rowView.orientation = if (fixed.stackedRows) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
+            rowView.gravity = if (fixed.stackedRows) Gravity.TOP else Gravity.CENTER_VERTICAL
+            rowView.layoutParams = rowView.layoutParams.apply { height = fixed.rowHeight }
+            name.layoutParams = if (fixed.stackedRows) {
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, fixed.nameHeight)
+            } else {
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            status.maxLines = if (fixed.stackedRows) Int.MAX_VALUE else 1
+            status.layoutParams = LinearLayout.LayoutParams(statusWidth, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                if (fixed.stackedRows) topMargin = gap else marginStart = gap
+            }
             name.text = row.name
             status.text = row.status
             status.setTextColor(when (row.indicator) {
@@ -236,7 +277,6 @@ abstract class NoticeOverlay(private val context: Context,
                 SwitchIndicator.Failure -> 0xFFE53935.toInt()
                 else -> Color.WHITE
             })
-            status.layoutParams = status.layoutParams.apply { width = statusWidth }
         }
         return fixed
     }
@@ -247,10 +287,12 @@ abstract class NoticeOverlay(private val context: Context,
         val statusWidth: Int,
         val headerHeight: Int,
         val rowHeight: Int,
+        val nameHeight: Int,
+        val stackedRows: Boolean,
     )
 
     private data class FrameKey(val configuration: Configuration, val screenWidth: Int, val screenHeight: Int,
-        val locales: String, val deviceNames: List<String>?, val hasHeader: Boolean, val operationId: Long?,
+        val locales: String, val rowCount: Int?, val title: String?, val operationId: Long?,
         val plainMessage: String?)
 
     /** 전환은 1행·2행별 고정 높이, 일반·오류 안내는 실제 문구에 맞춘 크기를 사용한다. */
@@ -261,43 +303,54 @@ abstract class NoticeOverlay(private val context: Context,
             config.setLocales(LocaleList.forLanguageTags(locales.toLanguageTags()))
             context.createConfigurationContext(config).resources
         }
-        val store = SelectionStore(context)
-        val selected = store.loadSelected()
         val devices = message as? DeviceNoticeMessage
-        val names = store.loadSelectedNames().filterKeys { it in selected }.values + devices?.rows.orEmpty().map { it.name }
         val statusLabels = listOf(
             R.string.toast_switch_status_complete, R.string.toast_switch_status_failed,
             R.string.toast_switch_status_switching, R.string.toast_switch_status_unconfirmed,
             R.string.device_connected,
         ).map { resources.getString(it) }
-        val samples = (1..3).map { resources.getString(R.string.toast_switch_title, it) }
         val outerMax = dp(if (devices != null) SWITCH_MAX_WIDTH_DP else MESSAGE_MAX_WIDTH_DP)
-        val chrome = dp(PADDING_X_DP) * 2 + dp(ICON_SIZE_DP) + dp(ICON_GAP_DP)
+        val chrome = dp(PADDING_DP) * 2 + dp(ICON_SIZE_DP) + dp(ICON_GAP_DP)
         val maxWidth = (minOf(outerMax, context.resources.displayMetrics.widthPixels - dp(48)) - chrome)
-            .coerceAtLeast(dp(120))
+            .coerceAtLeast(1)
         val gap = dp(STATUS_GAP_DP)
-        val statusWidth = ceil(statusLabels.maxOf { label.paint.measureText(it) }.toDouble()).toInt()
-            .coerceAtMost((maxWidth - gap - dp(32)).coerceAtLeast(1))
-        val nameWidth = names.maxOfOrNull { label.paint.measureText(it) } ?: 0f
-        val preferredWidth = if (devices != null) {
-            val headerWidth = if (devices.title != null) samples.maxOf { label.paint.measureText(it) } else 0f
-            maxOf(headerWidth, nameWidth + gap + statusWidth)
+        val measuredStatusWidth = ceil(statusLabels.maxOf { label.paint.measureText(it) }.toDouble()).toInt()
+        val stackedRows = devices != null && measuredStatusWidth + gap >= maxWidth
+        val statusWidth = if (stackedRows) maxWidth else measuredStatusWidth
+        val contentWidth = if (devices != null) {
+            if (stackedRows) maxWidth else minOf(dp(DEVICE_NAME_WIDTH_DP) + gap + statusWidth, maxWidth)
         } else {
-            message.toString().lineSequence().maxOf { label.paint.measureText(it) }
+            ceil(maxOf(message.toString().lineSequence().maxOf { label.paint.measureText(it) }, dp(120).toFloat())
+                .toDouble()).toInt().coerceAtMost(maxWidth)
         }
-        val contentWidth = ceil(maxOf(preferredWidth, dp(120).toFloat()).toDouble())
-            .toInt().coerceAtMost(maxWidth)
-        val rowHeight = maxOf(dp(DEVICE_ROW_MIN_DP), ceil(label.paint.fontSpacing.toDouble()).toInt())
+        val measuringLabel = createLabel().apply {
+            ellipsize = null
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        fun textHeight(text: CharSequence, width: Int, includePad: Boolean, maxLines: Int = Int.MAX_VALUE): Int {
+            measuringLabel.includeFontPadding = includePad
+            measuringLabel.maxLines = maxLines
+            measuringLabel.text = text
+            measuringLabel.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            return measuringLabel.measuredHeight
+        }
+        // TextView의 실제 대체 글꼴과 줄 간격도 포함해 큰 글꼴에서 상하가 잘리지 않게 한다.
+        val nameHeight = maxOf(dp(DEVICE_ROW_MIN_DP), ceil(label.paint.fontSpacing.toDouble()).toInt(),
+            statusLabels.maxOf { textHeight(it, measuredStatusWidth, false, 1) })
         val metrics = label.paint.fontMetricsInt
-        val headerHeight = maxOf(dp(ICON_SIZE_DP), metrics.bottom - metrics.top)
+        val rowHeight = if (stackedRows) {
+            nameHeight + gap + statusLabels.maxOf { textHeight(it, statusWidth, false) }
+        } else nameHeight
+        val headerHeight = maxOf(dp(ICON_SIZE_DP), if (devices?.title != null) {
+            textHeight(devices.title, contentWidth, true)
+        } else metrics.bottom - metrics.top)
         val contentHeight = if (devices != null) {
             (if (devices.title != null) headerHeight else 0) + rowHeight * devices.rows.size.coerceAtLeast(1)
         } else {
-            val textHeight = StaticLayout.Builder.obtain(message, 0, message.length, label.paint, contentWidth)
-                .setIncludePad(true).setMaxLines(6).build().height
-            maxOf(headerHeight, textHeight)
+            maxOf(headerHeight, textHeight(message, contentWidth, true, 6))
         }
-        return Frame(contentWidth, contentHeight, statusWidth, headerHeight, rowHeight)
+        return Frame(contentWidth, contentHeight, statusWidth, headerHeight, rowHeight, nameHeight, stackedRows)
     }
 
     protected fun dp(value: Int) = (value * context.resources.displayMetrics.density + 0.5f).toInt()
@@ -305,11 +358,11 @@ abstract class NoticeOverlay(private val context: Context,
     companion object {
         private const val SWITCH_MAX_WIDTH_DP = 300
         private const val MESSAGE_MAX_WIDTH_DP = 320
-        private const val PADDING_X_DP = 12
-        private const val PADDING_Y_DP = 8
+        private const val PADDING_DP = 12
         private const val ICON_SIZE_DP = 24
         private const val ICON_GAP_DP = 10
         private const val STATUS_GAP_DP = 8
+        private const val DEVICE_NAME_WIDTH_DP = 100
         private const val DEVICE_ROW_MIN_DP = 18
         const val DURATION_MS = 2_000L
         const val ONGOING_DURATION_MS = 30_000L
@@ -328,12 +381,12 @@ class SystemNoticeOverlay(private val context: Context,
     private val caller = Handler(Looper.getMainLooper())
     private val queued = QueuedNoticePresenter(
         post = { action ->
-            val queuedAt = SystemClock.uptimeMillis()
+            val queuedAt = if (BuildConfig.DEBUG) SystemClock.uptimeMillis() else 0L
             handler.post {
-                val startedAt = SystemClock.uptimeMillis()
+                val startedAt = if (BuildConfig.DEBUG) SystemClock.uptimeMillis() else 0L
                 action()
-                ConnectionLog.append("NOTICE_WORKER queueMs=${startedAt - queuedAt} " +
-                    "workMs=${SystemClock.uptimeMillis() - startedAt}", ConnectionLog.Level.Dim)
+                ConnectionLog.trace { "NOTICE_WORKER queueMs=${startedAt - queuedAt} " +
+                    "workMs=${SystemClock.uptimeMillis() - startedAt}" }
             }
         },
         postToCaller = { caller.post(it) },
@@ -349,12 +402,24 @@ class SystemNoticeOverlay(private val context: Context,
 
     override fun dismiss() = queued.dismiss()
 
+    override fun updateAppearance() = queued.updateAppearance()
+
     fun close() = queued.close { thread.quitSafely() }
 }
 
 /** View와 ViewRoot의 소유 Looper를 함께 유지한다. Activity 안의 대체 안내는 기존 메인 스레드를 쓴다. */
 private class SystemNoticeWindow(private val context: Context, looper: Looper) : NoticeOverlay(context, looper) {
     private val manager = requireNotNull(context.getSystemService(WindowManager::class.java))
+    private var opacity = 1f
+
+    override fun applyOpacity(view: View, opacity: Float) {
+        this.opacity = opacity
+        // 소프트웨어 ViewRoot에서도 전체에 반영되도록 창 Surface의 알파를 사용한다.
+        val params = view.layoutParams as? WindowManager.LayoutParams ?: return
+        if (params.alpha == opacity) return
+        params.alpha = opacity
+        manager.updateViewLayout(view, params)
+    }
 
     override fun available(): Boolean = Settings.canDrawOverlays(context)
 
@@ -370,6 +435,7 @@ private class SystemNoticeWindow(private val context: Context, looper: Looper) :
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             y = dp(64)
+            alpha = opacity
             title = "EasySwitchNotice"
         }
         manager.addView(view, params)

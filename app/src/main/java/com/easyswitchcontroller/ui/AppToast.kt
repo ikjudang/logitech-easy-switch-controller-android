@@ -22,6 +22,7 @@ import com.easyswitchcontroller.ui.notice.NoticePresenter
 import com.easyswitchcontroller.ui.notice.NoticeIndicatorSpan
 import com.easyswitchcontroller.ui.notice.DeviceNoticeMessage
 import com.easyswitchcontroller.ui.notice.SwitchNoticeMessage
+import com.easyswitchcontroller.ui.notice.NoticePreferences
 
 /** 앱 전체의 안내를 같은 오버레이에 표시한다. 모든 표시 상태는 메인 스레드에서 관리한다. */
 object AppToast {
@@ -37,6 +38,11 @@ object AppToast {
     fun attachForeground(presenter: NoticePresenter) = onMain { dispatcher.attachForeground(presenter) }
     fun detachForeground(presenter: NoticePresenter) = onMain { dispatcher.detachForeground(presenter) }
     internal fun presentationFailed(presenter: NoticePresenter) = onMain { dispatcher.presentationFailed(presenter) }
+
+    internal fun settingsChanged(context: Context) = onMain {
+        dispatcher.setEnabled(NoticePreferences.load(context).enabled)
+        dispatcher.updateAppearance()
+    }
 
     private fun messageContext(context: Context): Context {
         val locales = AppCompatDelegate.getApplicationLocales()
@@ -105,6 +111,7 @@ object AppToast {
     private fun show(context: Context, message: CharSequence, ongoing: Boolean) {
         val snapshot = if (message is DeviceNoticeMessage) message else SpannedString.valueOf(styleIndicators(message))
         onMain {
+            dispatcher.setEnabled(NoticePreferences.load(context).enabled)
             Log.i("AppToast", "오버레이 표시 요청: $snapshot")
             if (!dispatcher.show(snapshot, ongoing)) {
                 ConnectionLog.append("안내 표시 대기: 다른 앱 위에 표시를 허용하거나 앱 화면을 열어야 해요.", ConnectionLog.Level.Dim)

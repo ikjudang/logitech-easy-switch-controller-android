@@ -1,5 +1,7 @@
 # Easy Switch Controller for Android
 
+**한국어** | [English](#english)
+
 Logitech 마우스와 키보드의 Easy-Switch 채널을 Android에서 전환하는 비공식 앱입니다. 키보드의 Easy-Switch 키를 눌렀을 때 마우스를 같은 채널로 따라가게 하거나, 앱과 플로팅 버튼에서 선택한 기기를 함께 전환할 수 있습니다.
 
 Logitech과 제휴하거나 Logitech이 제공하는 앱은 아닙니다. 제품명과 상표는 연결할 기기를 설명하기 위해 사용합니다.
@@ -63,7 +65,7 @@ Logitech과 제휴하거나 Logitech이 제공하는 앱은 아닙니다. 제품
 
 ## 플로팅 버튼
 
-설정에서 **다른 앱 위에 표시**를 허용한 뒤 **플로팅 버튼**을 켜면 홈 화면과 다른 앱 위에서 사용할 수 있습니다. 앱과 같은 전환 대상 설정을 사용합니다.
+설정에서 **다른 앱 위에 표시**를 허용한 뒤 **플로팅 버튼**을 켜면 홈 화면과 다른 앱 위에서 사용할 수 있습니다. 앱과 같은 전환 대상 설정을 사용합니다. 공개 소스로 직접 빌드한 앱에는 이 기능이 없으며, 릴리즈의 별도 빌드 APK에서만 사용할 수 있습니다.
 
 - 홈 버튼을 누르면 채널 버튼과 `App` 버튼이 펼쳐집니다. `App`은 Easy Switch 앱을 엽니다.
 - 홈 버튼을 끌어서 위치를 옮길 수 있습니다. 메뉴는 화면 테두리를 고려해 배치됩니다.
@@ -128,11 +130,19 @@ Bluetooth 입력 장치가 연결되거나 해제될 때, 일부 Android 환경�
 
 공개 저장소에는 앱 기능 코드와 일반 정지 이미지·SVG·아이콘이 포함됩니다. 플로팅 렌더링·애니메이션 구현과 관련 원본, 상세 사양, 내부 계획·이력은 로컬 전용으로 관리합니다. [공개 이미지 참고 자료](docs/handoff/README.md)를 볼 수 있습니다.
 
-따라서 공개 저장소를 복제하거나 GitHub의 `Source code` 압축 파일을 받는 것만으로 전체 앱을 빌드할 수는 없습니다. 앱을 설치하려면 릴리즈에 첨부된 APK를 사용해 주세요.
+따라서 공개 저장소의 소스만으로 빌드한 앱에는 **플로팅 버튼이 포함되지 않습니다.** 플로팅 버튼을 제외한 나머지 기능(기기 연결·전환, 키보드 따라가기, 안내, 설정, 로그)은 공개 소스로 빌드할 수 있습니다. 이 빌드의 설정 화면에는 플로팅 버튼을 쓸 수 없다는 안내가 표시됩니다. 플로팅 버튼을 쓰려면 릴리즈에 첨부된 별도 빌드 APK를 설치해 주세요.
+
+### 직접 빌드하기
+
+```
+./gradlew :app:testDebugUnitTest :app:assembleDebug
+```
+
+플로팅 구현 파일이 소스에 없으면 빌드가 자동으로 `app/src/floatingStub`의 빈 자리표시를 사용합니다. 별도 설정은 필요하지 않습니다.
 
 배포 APK는 로컬의 전체 소스로 서명 빌드하고 검증한 뒤 릴리즈에 첨부합니다. 해시 파일이 함께 제공되며, 서명 키와 비밀번호는 저장소에 보관하지 않습니다.
 
-기존 태그 자동 빌드 워크플로는 저장소에 남아 있습니다. 현재 공개 소스와 서명 설정만으로 배포를 완료할 수 없으므로 현재 배포 절차로 사용하지 않습니다. 자동 작업의 실패 여부와 별개로, 게시한 APK는 로컬에서 빌드·검증한 파일입니다.
+태그 자동 빌드 워크플로는 공개 소스로 빌드하므로 플로팅 버튼이 없는 APK를 만듭니다. 릴리즈에 첨부하는 플로팅 버튼 포함 APK는 로컬에서 빌드·검증한 파일입니다.
 
 ## 라이선스
 
@@ -140,3 +150,158 @@ Bluetooth 입력 장치가 연결되거나 해제될 때, 일부 Android 환경�
 
 - [Pretendard 라이선스](licenses/OFL-Pretendard.txt)
 - [Space Mono 라이선스](licenses/OFL-SpaceMono.txt)
+
+---
+
+# English
+
+**[한국어](#easy-switch-controller-for-android)** | **English**
+
+An unofficial Android app that switches the Easy-Switch channel of Logitech mice and keyboards. When you press the Easy-Switch key on a keyboard, the app makes the mouse follow to the same channel. You can also switch the selected devices together from the app or from a floating button.
+
+This app is not affiliated with Logitech and is not provided by Logitech. Product names and trademarks are used only to describe the devices you can connect.
+
+[Releases and APK download](https://github.com/ikjudang/logitech-easy-switch-controller-android/releases)
+
+## Supported devices
+
+- The app works with compatible devices paired to Android over Bluetooth. You pick the devices to control from the list of devices registered in the system.
+- A device's switching feature and connection method must be compatible with this app's communication method. Being connected over Bluetooth alone does not mean every product is supported.
+- The current implementation targets direct Bluetooth connections. Controlling devices through a USB receiver is not implemented.
+- APKs are distributed as experimental builds. Check each release's notes for the behavior currently under evaluation.
+
+## Installation and first use
+
+1. Download the `EasySwitch` APK from the Releases page and install it. The GitHub `Source code` archive is not an installable file.
+2. Pair the devices you want to use in Android's Bluetooth settings.
+3. Open the app and allow the nearby devices permission.
+4. On the device selection screen, choose the mouse and keyboard the app should control.
+5. Tap a channel button on Home to switch manually, or use the Easy-Switch key on a connected keyboard.
+
+A release APK built with the same package name and signature can be installed as an update over an existing install. A development APK with a different signature cannot be installed as an update over a release APK.
+
+## Switching devices
+
+### Keyboard follow
+
+The app watches the switch signal of the selected, connected keyboards. When it receives a signal, it tells the selected mice to switch to the same channel. Opening the app screen starts the follow service, and the service is configured to start again after a reboot or an app update. It works only when the required permissions and Android's service execution conditions are met.
+
+The keyboard's own switching works independently of the app's watching connection. Mice confirmed to be not connected are excluded from that follow action and its result.
+
+### Switching together from the app
+
+When you pick a channel on Home or in the floating menu, the app starts the switch commands for the selected connected devices without waiting for each other. The moment each device actually finishes switching can differ.
+
+On Home, long-press a channel name or right-click it with a mouse to edit it. Device selection is not cleared by a temporary failure to read the device list, and the app also restores the selection by name for re-registered devices.
+
+### Channel indicators on Home
+
+| Indicator | Meaning |
+| --- | --- |
+| Currently connected to this device | The app confirmed this as the channel of a device currently connected to this Android device. |
+| Last switched channel | The channel the app last sent a command to, or last observed a switch signal for. It does not mean the other device is still using that channel. |
+
+This Android app does not keep tracking switches that happen between other hosts. The last-switched indicator and the current-connection indicator are shown separately.
+
+## Switch and connection notices
+
+Notices are shown together with the app icon. A switch notice shows the actual device name and status on separate rows under the channel title.
+
+- `Switching`: the app is waiting for the result of that switch.
+- `Done`: the connection state the app can observe meets the switch confirmation condition.
+- `Failed`: the command could not be delivered, or the switch confirmation condition was not met.
+- `Check needed`: the app cannot determine the result.
+
+Done and Failed are also distinguished by text color. The result of a device confirmed late is reflected in the same switch notice. If there is nothing to switch, the notice says there are no devices to switch.
+
+A connection notice also shows the actual device name and `Connected` on separate rows. Devices that connect together can be grouped in one notice. Duplicate system events for the same connection are not announced repeatedly as new connections.
+
+A Done indicator is a result the app observed. It does not guarantee that the device arrived normally at the destination host after the connection dropped.
+
+## Floating button
+
+After you allow **Display over other apps** in settings and turn on **Floating button**, you can use it on the home screen and over other apps. It uses the same switch-target settings as the app. This feature is not in an app you build from the public source; it is available only in the separately built APK on the Releases page.
+
+- Tap the main button to expand the channel buttons and the `App` button. `App` opens the Easy Switch app.
+- Drag the main button to move it. The menu is laid out with the screen edges in mind.
+- It responds to mouse hover and touch, and shows the selected button distinctly from the others.
+- A regular menu collapses when you tap outside the buttons.
+- Long-press or right-click the main button to show a hide `X`. Drag the main button onto the `X` to hide it.
+- When a keyboard switch signal arrives while the sub-buttons are expanded, the matching channel plays a selection effect. The app does not send a switch command again for this feedback.
+
+### Floating settings
+
+| Setting | Behavior |
+| --- | --- |
+| Transparency | Adjusts the display opacity with a number input or a slider. |
+| Size | Adjusts the main button, sub-buttons, and hide button together. An open menu is adjusted as well. |
+| Animation speed | Adjusts the playback speed of expand, absorb, hover, dim, and bounce animations. |
+| Always show sub-buttons | Keeps the sub-menu expanded. When off, the sub-buttons collapse. |
+| Bounce animation | Turns the bounce motion on or off. Hover, dim, and the menu's expand and absorb remain as default behavior. |
+
+While the button is actually displayed, the settings row shows **In use**. If it is not displayed, you can show it again with **Turn on**. When the button is invisible because of the size or transparency setting, the app does not change the value on its own; it expands the sub-settings instead.
+
+### Showing a hidden button again
+
+- Tap the app's **Floating button** notification. To use the notification, Android must allow notifications for the app.
+- Add the **Floating button** tile in the Quick Settings edit screen and tap the tile.
+- Use **Turn on** in the app settings.
+- On the Easy Switch app screen, press the left and right mouse buttons together to show it at the pointer position. This does not capture input globally in other apps.
+
+If the conditions to show the button are not met, the notification or tile opens the app. When the floating feature is on and the app notification is dismissed, the app is configured to post it again, but it does not override a state where you have blocked the notification itself in system settings.
+
+## Permissions and system notifications
+
+| Item | When it is needed |
+| --- | --- |
+| Nearby devices | To query registered Bluetooth devices and to connect to and control them. |
+| Display over other apps | To use notices over other apps and the floating button. You can open the system permission screen from settings. |
+| Notifications | Used for the app notification that shows the floating button again. The app requests the permission when it is needed. |
+
+The app does not currently use an accessibility service. Device follow and in-app notices work even without the display-over-other-apps permission.
+
+The app's **Floating button** notification is different from the **Displaying over other apps** notification that Android shows. Android manages how system notifications are displayed and ordered.
+
+## Settings and logs
+
+- **Keep mouse connected**: keeps the app's communication connection to the selected mouse. You can turn it on or off to compare connection paths.
+- **Auto-save log**: writes connection and switch records to a file. On a new install you turn it on yourself, and a submenu lets you choose or change the save folder.
+- **Export log**: saves the current records to the chosen folder, or uses the system's save-location picker. The app does not provide its own cloud sync.
+- **Language**: Korean and English.
+
+On a phone, open the connection log screen to read the records. On a wide screen, the log is shown alongside settings.
+
+### Firmware return test
+
+In the test tool in the connection log area, you can send a switch command to a selected connected mouse and observe whether the firmware returns by itself. The app does not forcibly move it back to the original channel.
+
+You must choose a destination that has no device you want to connect, and avoid switching other channels during the test. If the mouse does not return, finish the test and select the original channel with the mouse's own button. The result is recorded in the connection log and file.
+
+## Behavior under investigation
+
+When a Bluetooth input device connects or disconnects, we have observed that on some Android environments the system's screen transition briefly covers the overlay. We are investigating whether the app stopped drawing or the system is covering it. This is not marked as resolved.
+
+## Source and distribution
+
+The public repository contains the app's feature code and general still images, SVGs, and icons. The floating rendering and animation implementation, related source material, detailed specifications, and internal plans and history are kept local only. See the [public image reference](docs/handoff/README.md).
+
+So an app built from the public source alone **does not include the floating button.** Everything else (device connection and switching, keyboard follow, notices, settings, logs) can be built from the public source. In that build, the settings screen says the floating button is unavailable. To use the floating button, install the separately built APK attached to a release.
+
+### Building it yourself
+
+```
+./gradlew :app:testDebugUnitTest :app:assembleDebug
+```
+
+When the floating implementation files are not in the source, the build automatically uses the empty placeholders in `app/src/floatingStub`. No extra setup is needed.
+
+Release APKs are signed and built from the full local source, verified, and then attached to the release. A checksum file is provided alongside, and the signing key and passwords are not stored in the repository.
+
+The tag-triggered build workflow builds from the public source, so it produces an APK without the floating button. The APK with the floating button that is attached to a release is a file built and verified locally.
+
+## License
+
+The public code and documents are under the [MIT License](LICENSE). The bundled fonts follow their respective authors' SIL Open Font Licenses.
+
+- [Pretendard license](licenses/OFL-Pretendard.txt)
+- [Space Mono license](licenses/OFL-SpaceMono.txt)

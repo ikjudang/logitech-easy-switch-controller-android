@@ -20,6 +20,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,9 +71,9 @@ import kotlin.math.roundToInt
 @Composable
 internal fun FloatingButtonCard(overlayOn: Boolean, tablet: Boolean) {
     val context = LocalContext.current
-    val revision by FloatingPreferences.revision.collectAsState()
+    val revision by FloatingPreferences.revision.collectAsStateWithLifecycle()
     val settings = remember(revision) { FloatingPreferences.load(context) }
-    val homeVisible by FollowService.floatingVisible.collectAsState()
+    val homeVisible by FollowService.floatingVisible.collectAsStateWithLifecycle()
     val inUse = settings.enabled && overlayOn && homeVisible
     var expanded by rememberSaveable { mutableStateOf(false) }
     val shape = RoundedCornerShape(if (tablet) 16.dp else 18.dp)
@@ -182,7 +183,7 @@ internal fun FloatingButtonCard(overlayOn: Boolean, tablet: Boolean) {
 
 /** 투명도·크기·속도는 같은 숫자 입력·미세 조절 슬라이더를 사용한다. */
 @Composable
-private fun FloatingPercentRow(label: String, value: Int, maximum: Int, tablet: Boolean,
+internal fun FloatingPercentRow(label: String, value: Int, maximum: Int, tablet: Boolean,
     minimum: Int = 0, onChange: (Int) -> Unit) {
     val focus = LocalFocusManager.current
     val current by rememberUpdatedState(value)

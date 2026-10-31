@@ -400,7 +400,7 @@ class ChannelViewModelTest {
 
         assertEquals(0, mouseFake.sentFrames.size)
         // LogiDevice가 FeatureUnsupportedException 메시지("...미지원...")를 실패 사유로 돌려준다.
-        assertTrue(vm.uiState.value.log.any { it.contains("전환 안 됨") || it.contains("미지원") })
+        assertTrue(vm.log.value.any { it.contains("전환 안 됨") || it.contains("미지원") })
     }
 
     @Test

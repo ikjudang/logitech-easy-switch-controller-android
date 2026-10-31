@@ -47,6 +47,9 @@ class ConnectedDevicesMonitor(
     private val connectionNotices = ConnectionNoticeTracker(_connectedAddresses.value)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val refreshWorker = CoalescedRefresh(scope) {
+        _connectedAddresses.value = currentConnected()
+    }
     private val connectionBatch = ConnectionNoticeBatcher(scope) { addresses ->
         runCatching { onDevicesConnected(addresses) }
             .onFailure { android.util.Log.w("BluetoothMonitor", "연결 안내 실패", it) }
@@ -126,7 +129,8 @@ class ConnectedDevicesMonitor(
     }
 
     fun refresh() {
-        _connectedAddresses.value = currentConnected()
+        // 브로드캐스트의 메인 스레드에서 Bluetooth IPC를 순회하지 않는다.
+        refreshWorker.request()
     }
 
     @SuppressLint("MissingPermission")

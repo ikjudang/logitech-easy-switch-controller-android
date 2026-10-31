@@ -50,6 +50,7 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_toast">Toasts</string>
     <string name="settings_overlay">Display over other apps</string>
     <string name="settings_overlay_on_desc">Switch updates appear while you use other apps.</string>
     <string name="settings_overlay_off_desc">Allow it to see switch updates while you use other apps. Mouse following works without it.</string>
@@ -123,6 +124,7 @@
 
     <!-- 플로팅 버튼 -->
     <string name="floating_title">Floating button</string>
+    <string name="floating_unavailable">This build does not include the floating button. To use it, install the separately built APK from the Releases page.</string>
     <string name="floating_in_use">In use</string>
     <string name="floating_turn_on">Turn on</string>
     <string name="floating_description">Choose channel 1, 2, or 3 over the Home screen and other apps. To restore a button hidden with X, turn this setting off and on, or press both mouse buttons together inside the app.</string>

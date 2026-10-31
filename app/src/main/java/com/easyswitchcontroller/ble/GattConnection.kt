@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
+import com.easyswitchcontroller.BuildConfig
 import com.easyswitchcontroller.R
 import android.util.Log
 import com.easyswitchcontroller.config.ProtocolConfig
@@ -139,7 +140,7 @@ class GattConnection(
             value: ByteArray,
         ) {
             if (epoch != generation || characteristic.uuid != profile?.notifyChar?.uuid) return
-            Log.d(TAG, "notify(${value.size}B) on ${characteristic.uuid}: ${value.toHex()}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "notify(${value.size}B) on ${characteristic.uuid}: ${value.toHex()}")
             _notifications.tryEmit(value.copyOf())
         }
 
@@ -152,7 +153,7 @@ class GattConnection(
             if (epoch != generation || characteristic.uuid != profile?.notifyChar?.uuid) return
             @Suppress("DEPRECATION")
             characteristic.value?.let {
-                Log.d(TAG, "notify(${it.size}B) on ${characteristic.uuid}: ${it.toHex()}")
+                if (BuildConfig.DEBUG) Log.d(TAG, "notify(${it.size}B) on ${characteristic.uuid}: ${it.toHex()}")
                 _notifications.tryEmit(it.copyOf())
             }
         }
@@ -220,7 +221,7 @@ class GattConnection(
         val done = CompletableDeferred<Unit>().also { pendingWrite = it }
         writeAllowsDisconnect = !expectAck
         try {
-            Log.d(TAG, "write(${bytes.size}B, type=${wc.preferredWriteType()}) to ${wc.uuid}: ${bytes.toHex()}")
+            if (BuildConfig.DEBUG) Log.d(TAG, "write(${bytes.size}B, type=${wc.preferredWriteType()}) to ${wc.uuid}: ${bytes.toHex()}")
             if (!g.writeCharacteristicCompat(wc, bytes, wc.preferredWriteType())) {
                 throw IOException("writeCharacteristic 큐잉 실패")
             }

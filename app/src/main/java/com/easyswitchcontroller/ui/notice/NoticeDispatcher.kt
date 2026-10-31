@@ -4,6 +4,7 @@ package com.easyswitchcontroller.ui.notice
 interface NoticePresenter {
     fun show(message: CharSequence, ongoing: Boolean = false): Boolean
     fun dismiss()
+    fun updateAppearance() {}
 }
 
 /** 다른 앱 위 창을 우선 사용하고, 붙일 수 없으면 현재 앱 화면에 표시한다. */
@@ -18,8 +19,22 @@ class NoticeDispatcher(
     private var message: CharSequence? = null
     private var requestedAt = 0L
     private var ongoing = false
+    private var enabled = true
+
+    fun setEnabled(enabled: Boolean) {
+        if (this.enabled == enabled) return
+        this.enabled = enabled
+        if (!enabled) {
+            message = null
+            active?.let(::retire)
+        }
+    }
+
+    fun updateAppearance() { active?.updateAppearance() }
 
     fun show(message: CharSequence, ongoing: Boolean = false): Boolean {
+        // 사용자가 끈 안내는 표시 대기나 대체 경로로 넘기지 않고 처리 완료로 간주한다.
+        if (!enabled) return true
         this.message = message
         this.ongoing = ongoing
         requestedAt = nowMillis()

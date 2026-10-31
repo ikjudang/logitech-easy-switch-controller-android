@@ -40,6 +40,14 @@ internal class QueuedNoticePresenter(
         post { dismissRenderer() }
     }
 
+    override fun updateAppearance() {
+        if (closed) return
+        post {
+            if (!closed) try { renderer?.updateAppearance() }
+            catch (error: Exception) { onError(error) }
+        }
+    }
+
     fun close(onClosed: () -> Unit) {
         synchronized(lock) {
             if (closed) return

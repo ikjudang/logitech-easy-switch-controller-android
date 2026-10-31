@@ -2,6 +2,7 @@ package com.easyswitchcontroller.floating
 
 import android.os.Handler
 import android.os.Looper
+import com.easyswitchcontroller.BuildConfig
 import android.view.InputDevice
 import android.view.MotionEvent
 
@@ -29,7 +30,7 @@ internal object FloatingInputSession {
     fun acceptAppEvent(event: MotionEvent, displayId: Int) {
         if (!running || !event.isFromSource(InputDevice.SOURCE_MOUSE) || event.isFromSource(InputDevice.SOURCE_MOUSE_RELATIVE)) return
         val buttons = if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) 0 else event.buttonState
-        if (event.actionMasked != MotionEvent.ACTION_HOVER_MOVE && event.actionMasked != MotionEvent.ACTION_MOVE) {
+        if (BuildConfig.DEBUG && event.actionMasked != MotionEvent.ACTION_HOVER_MOVE && event.actionMasked != MotionEvent.ACTION_MOVE) {
             logger("APP_WINDOW action=${event.actionMasked} device=${event.deviceId} display=$displayId buttons=$buttons x=${event.rawX} y=${event.rawY}")
         }
         val summon = detector.accept(MouseChordDetector.Sample(event.deviceId, displayId, event.eventTime,

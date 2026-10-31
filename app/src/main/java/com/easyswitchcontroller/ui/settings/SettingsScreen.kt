@@ -37,7 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.core.os.LocaleListCompat
+import com.easyswitchcontroller.BuildConfig
 import com.easyswitchcontroller.R
 import com.easyswitchcontroller.data.ConnectionLog
 import com.easyswitchcontroller.data.LogFolderSink
@@ -102,7 +103,8 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
         ) {
             OverlayCard(overlayOn = overlayOn, tablet = false)
-            FloatingButtonCard(overlayOn = overlayOn, tablet = false)
+            if (BuildConfig.FLOATING_IMPL) FloatingButtonCard(overlayOn = overlayOn, tablet = false) else FloatingUnavailableCard()
+            ToastCard(tablet = false)
             KeepMouseCard(tablet = false)
             LogCard(tablet = false, selectedOnTablet = false, onClick = onOpenLog)
             LogFolderCard(tablet = false)
@@ -132,7 +134,6 @@ fun SettingsTabletContent(
     split: Boolean,
     onToggleLog: () -> Unit,
 ) {
-    val entries by ConnectionLog.entries.collectAsState()
     Column(Modifier.fillMaxSize().clearSettingsInputFocusOnOutsidePress()) {
         ScreenHeader(
             title = stringResource(R.string.settings_title),
@@ -161,6 +162,7 @@ fun SettingsTabletContent(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             if (logOpen) {
+                val entries by ConnectionLog.entries.collectAsStateWithLifecycle()
                 Column(Modifier.weight(1f)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -213,7 +215,8 @@ private fun SettingsCardColumn(
         modifier = modifier.clearInputFocusOnUserScroll().verticalScroll(rememberScrollState()),
     ) {
         OverlayCard(overlayOn = overlayOn, tablet = true)
-        FloatingButtonCard(overlayOn = overlayOn, tablet = true)
+        if (BuildConfig.FLOATING_IMPL) FloatingButtonCard(overlayOn = overlayOn, tablet = true) else FloatingUnavailableCard()
+        ToastCard(tablet = true)
         KeepMouseCard(tablet = true)
         LogCard(tablet = true, selectedOnTablet = logSelected, onClick = onToggleLog)
         LogFolderCard(tablet = true)
@@ -595,7 +598,7 @@ private fun OverlayCard(overlayOn: Boolean, tablet: Boolean) {
 /** 연결 로그 카드. 태블릿에서 [selectedOnTablet]이면 선택 강조(우측 페인 표시 중). */
 @Composable
 private fun LogCard(tablet: Boolean, selectedOnTablet: Boolean, onClick: () -> Unit) {
-    val entries by ConnectionLog.entries.collectAsState()
+    val entryCount by ConnectionLog.entryCount.collectAsStateWithLifecycle(initialValue = ConnectionLog.entries.value.size)
     val shape = RoundedCornerShape(if (tablet) 16.dp else 18.dp)
     val selected = tablet && selectedOnTablet
     Row(
@@ -635,7 +638,7 @@ private fun LogCard(tablet: Boolean, selectedOnTablet: Boolean, onClick: () -> U
             )
         }
         Text(
-            text = stringResource(R.string.settings_log_count, entries.size),
+            text = stringResource(R.string.settings_log_count, entryCount),
             fontFamily = SpaceMono,
             fontSize = if (tablet) 11.sp else 10.sp,
             color = if (selected) Color(0xFFA99BD6) else Tokens.TextMuted,

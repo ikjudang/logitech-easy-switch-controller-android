@@ -2,11 +2,10 @@ package com.easyswitchcontroller.data
 
 import android.content.Context
 import android.os.Build
+import com.easyswitchcontroller.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +15,16 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import java.io.File
+import java.io.FileOutputStream
+import java.io.RandomAccessFile
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,10 +78,20 @@ object ConnectionLog {
 
     private val _entries = MutableStateFlow<List<Entry>>(emptyList())
     val entries: StateFlow<List<Entry>> = _entries.asStateFlow()
+    val entryCount = entries.map { it.size }.distinctUntilChanged()
 
     private val io = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
     // 파일 입출력은 화면의 로그 예약·설정 잠금을 붙들지 않는다.
     private val fileLock = Any()
+    private val writer = LogBatchWriter<Pair<File, Entry>>(io) { batch ->
+        // 여러 저장 대상을 한 묶음으로 합치더라도 각 파일 내부의 도착 순서는 유지한다.
+        // 자동 저장을 끈 뒤(sink == null)에는 이미 큐에 들어간 항목도 쓰지 않는다.
+        val active = sink ?: return@LogBatchWriter
+        batch.filter { it.first == active }
+            .groupBy({ it.first }, { it.second }).forEach { (file, entries) -> writeLines(file, entries) }
+    }
+    private val snapshotIo = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
+    private val snapshotRequests = MutableStateFlow(0L)
 
     @Volatile
     private var sink: File? = null
@@ -82,7 +100,18 @@ object ConnectionLog {
     @Volatile
     private var appContext: Context? = null
 
-    private var snapshotJob: Job? = null
+    @OptIn(FlowPreview::class)
+    private val snapshotJob = snapshotIo.launch {
+        // 매 로그마다 예약 Job을 취소·재생성하지 않고 마지막 요청을 하나로 합친다.
+        snapshotRequests.debounce { if (it == 0L) 0L else SNAPSHOT_DEBOUNCE_MS }.collect { request ->
+            if (request != 0L) appContext?.let { context ->
+                runCatching {
+                    writer.flush()
+                    writeSnapshot(context)
+                }
+            }
+        }
+    }
 
     /**
      * 파일 영속화를 켜고 시작 마커를 남긴다. 프로세스당 여러 번 불려도 안전하다(액티비티·서비스가
@@ -123,7 +152,7 @@ object ConnectionLog {
         prefs(context).edit().putBoolean(KEY_SAVING, enabled).apply()
         if (!enabled) {
             sink = null
-            snapshotJob?.cancel()
+            snapshotRequests.value = 0L
             return
         }
         if (sink != null) return
@@ -131,8 +160,9 @@ object ConnectionLog {
         val recent = _entries.value
         io.launch {
             runCatching {
+                writer.flush()
                 val persisted = readAll(file, limit = Int.MAX_VALUE)
-                unwrittenEntries(persisted, recent).forEach { writeLine(file, it) }
+                writeLines(file, unwrittenEntries(persisted, recent))
             }
         }
         scheduleSnapshot()
@@ -152,14 +182,18 @@ object ConnectionLog {
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+    internal inline fun trace(message: () -> String) {
+        if (BuildConfig.DEBUG) append(message(), Level.Dim)
+    }
+
     fun append(message: String, level: Level = Level.Info) {
         // 개행이 들어오면 파일의 한 줄 = 한 항목 규칙이 깨진다.
         val safe = message.replace('\n', ' ').replace('\r', ' ').replace(SEPARATOR, ' ')
         val entry = Entry(System.currentTimeMillis(), safe, level)
-        _entries.update { (it + entry).takeLast(MAX_ENTRIES) }
+        _entries.update { appendCapped(it, entry, MAX_ENTRIES) }
 
         val file = sink ?: return
-        io.launch { runCatching { writeLine(file, entry) } }
+        writer.append(file to entry)
         scheduleSnapshot()
     }
 
@@ -171,8 +205,8 @@ object ConnectionLog {
      */
     fun snapshotNow(explicit: Boolean = false): Deferred<Boolean> {
         val context = appContext ?: return CompletableDeferred(false)
-        return io.async {
-            try { writeSnapshot(context, explicit) }
+        return snapshotIo.async {
+            try { writer.flush(); writeSnapshot(context, explicit) }
             catch (error: CancellationException) { throw error }
             catch (error: Exception) { false }
         }
@@ -185,11 +219,7 @@ object ConnectionLog {
     @Synchronized private fun scheduleSnapshot() {
         val context = appContext ?: return
         if (LogFolderSink.getFolder(context) == null) return // 폴더 미지정이면 비용 0
-        snapshotJob?.cancel()
-        snapshotJob = io.launch {
-            delay(SNAPSHOT_DEBOUNCE_MS)
-            runCatching { writeSnapshot(context) }
-        }
+        snapshotRequests.update { it + 1 }
     }
 
     private fun writeSnapshot(context: Context, explicit: Boolean = false): Boolean {
@@ -227,14 +257,44 @@ object ConnectionLog {
     }
 
     /** 저장 창으로 내보낼 평문 — 폴더 스냅샷과 같은 내용이다. 며칠에 걸친 기록이라 날짜까지 넣는다. */
-    fun exportAllText(): Deferred<String> = io.async { format(allEntries()) }
+    fun exportAllText(): Deferred<String> = io.async { writer.flush(); format(allEntries()) }
 
-    private fun writeLine(file: File, entry: Entry) = synchronized(fileLock) {
-        file.appendText("${entry.timeMillis}$SEPARATOR${entry.level.name}$SEPARATOR${entry.message}\n")
-        if (file.length() > MAX_FILE_BYTES) {
-            val kept = file.readLines().takeLast(MAX_ENTRIES * 2)
-            file.writeText(kept.joinToString("\n", postfix = "\n"))
+    private fun writeLines(file: File, entries: List<Entry>): Unit = synchronized(fileLock) {
+        if (entries.isEmpty()) return@synchronized
+        val previousLength = try { file.length() } catch (_: Exception) {
+            if (entries.size > 1) entries.forEach { entry -> runCatching { writeLines(file, listOf(entry)) } }
+            return@synchronized
         }
+        try {
+            FileOutputStream(file, true).bufferedWriter().use { output ->
+                entries.forEach { entry ->
+                    output.append("${entry.timeMillis}$SEPARATOR${entry.level.name}$SEPARATOR${entry.message}\n")
+                }
+            }
+        } catch (_: Exception) {
+            // 부분 기록을 되돌린 뒤 개별 재시도한다. 한 번의 실패로 묶음 전체를 잃거나 중복하지 않는다.
+            val restored = runCatching { RandomAccessFile(file, "rw").use { it.setLength(previousLength) } }.isSuccess
+            if (restored && entries.size > 1) entries.forEach { entry -> runCatching { writeLines(file, listOf(entry)) } }
+            return@synchronized
+        }
+        if (file.length() > MAX_FILE_BYTES) trimFile(file)
+    }
+
+    /**
+     * 오래된 줄을 버린다. 임시 파일에 먼저 쓰고 교체하므로, 쓰는 도중 프로세스가 죽어도 원본 기록은 그대로 남는다.
+     * 정리에 실패해도 기록 자체는 이미 쓰였으니 다음 쓰기 때 다시 시도한다.
+     */
+    private fun trimFile(file: File) {
+        val temp = File(file.parentFile, file.name + ".tmp")
+        runCatching {
+            val kept = file.readLines().takeLast(MAX_ENTRIES * 2)
+            temp.writeText(kept.joinToString("\n", postfix = "\n"))
+            try {
+                Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        }.onFailure { runCatching { temp.delete() } }
     }
 
     private fun readAll(file: File, limit: Int = MAX_ENTRIES): List<Entry> = synchronized(fileLock) {
@@ -246,6 +306,16 @@ object ConnectionLog {
             val level = runCatching { Level.valueOf(parts[1]) }.getOrDefault(Level.Info)
             Entry(time, parts[2], level)
         }.takeLast(limit)
+    }
+}
+
+/** 임시 전체 목록을 먼저 만들지 않고 보관할 항목만 한 번 복사한다. */
+internal fun <T> appendCapped(entries: List<T>, entry: T, limit: Int): List<T> {
+    require(limit > 0)
+    val kept = minOf(entries.size, limit - 1)
+    return ArrayList<T>(kept + 1).apply {
+        for (index in entries.size - kept until entries.size) add(entries[index])
+        add(entry)
     }
 }
 

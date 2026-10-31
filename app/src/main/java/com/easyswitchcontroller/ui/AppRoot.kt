@@ -21,7 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,9 +93,9 @@ private fun AppScaffold() {
     val store = remember { SelectionStore(context) }
     // 프로세스 전역 싱글톤 — 재생성돼도 캐시된 ViewModel과 항상 같은 인스턴스를 본다.
     val monitor = remember { ServiceLocator.connectedDevicesMonitor(appContext) }
-    val connectedAddresses by monitor.connectedAddresses.collectAsState()
-    val followRunning by FollowStatus.running.collectAsState()
-    val followKeyboards by FollowStatus.connectedKeyboards.collectAsState()
+    val connectedAddresses by monitor.connectedAddresses.collectAsStateWithLifecycle()
+    val followRunning by FollowStatus.running.collectAsStateWithLifecycle()
+    val followKeyboards by FollowStatus.connectedKeyboards.collectAsStateWithLifecycle()
     val overlayOn by rememberOverlayGranted()
 
     val initialSnapshot = remember { repository.snapshot() }

@@ -73,7 +73,7 @@ object ServiceLocator {
     fun device(
         appContext: Context,
         info: BondedDeviceInfo,
-        kind: DeviceKind = DeviceKind.MOUSE,
+        kind: DeviceKind,
     ): LogiDevice = synchronized(deviceCache) {
         deviceCache.getOrPut(info.address) { createDevice(appContext, info, kind) }
             .also { it.updateMetadata(info.name, kind) }
